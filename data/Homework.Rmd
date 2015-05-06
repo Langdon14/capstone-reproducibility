@@ -1,6 +1,8 @@
 #440 Reproducibility and Statistics Assignment Homework
 
 <!-- This is an Rmd comment. -->
+Hi
+
 <!--
 You can make comments several lines long by inserting
 the text in between the the start and the end of the 
