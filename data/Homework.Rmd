@@ -21,8 +21,9 @@ instead (e.g. alpha)
 --> 
 
 <!-- Load the politics.csv data file. -->
-
-
+```{r}
+politics<-read.csv("politics.csv")
+```
 
 <!-- 
 Check the structure.
@@ -31,10 +32,16 @@ optimismscore and income should be integer and numeric vectors.
 Fix any variables that aren't right.
 -->
 
+```{r}
+str(politics)
+```
 
 <!-- Find the minimum, mean, and variance for posttest
 optimism scores. -->
 
+```{r}
+summary(politics$optimismscore[politics$testtime=="post"])
+```
 
 <!-- Create a histogram of posttest optimism scores.
 Feel free to use the default ugly settings since
@@ -43,6 +50,10 @@ you're a real go-getter, see if you can figure
 out how to make a prettier histogram with better
 labels, etc. using ggplot2. -->
 
+This histogram displays the posttest optimism scores.
+```{r}
+hist(politics$optimismscore[politics$testtime=="post"])
+```
 
 <!-- Run a test to determine whether political affiliation
 is independent of one's gender.
@@ -50,24 +61,135 @@ Present the data supporting your analyses in graphical or
 tabular form.
 -->
 
+```{r}
+tab<-table(politics$party[politics$testtime=="pre"],politics$sex[politics$testtime=="pre"])
+tab
+```
+```{r}
+chisq.test(politics$party[politics$testtime=="pre"],politics$sex[politics$testtime=="pre"])
+```
+Political affiliation is not independent of sex, Chi-Square(2) = .73, p = .7.
 
 <!-- Run a test to determine whether or not males and females
 have different incomes.
 Create a graph to display your data that includes the relevant
 means and standard errors.-->
 
+```{r}
+t.test(politics$income[politics$sex=="male" & politics$testtime=="pre"],politics$income[politics$sex=="female" & politics$testtime=="pre"])
+```
+
+Males and females do not differ in income before watching *AFHV*, 
+t(-1.57) = 61.6, p = .12.
+
+```{r}
+library("dplyr")
+library("ggplot2")
+library("gplots")
+polsum<-politics%>%group_by(sex)%>%arrange(sex)%>%summarize(means=mean(income),sems=sd(income)/sqrt(length(income)))
+polsum  
+fig<-ggplot(polsum,aes(x=factor(sex),y=means))
+fig<-fig+geom_bar(stat="identity",color="black",fill=c("deepskyblue2","deeppink"))
+fig<-fig+geom_errorbar(aes(ymax=means+sems,ymin=means-sems),width=.2)
+fig
+```
 
 <!-- See if male and females with different political affiliations
 have different posttest optimism scores. Create a graph to display
 your data that includes the relevant means and standard errors.-->
 
+```{r}
+summary(aov(optimismscore~party*sex,data=politics[politics$testtime=="post",]))
+```
+
+Post optimism score is related to party affiliation, F(2, 60) = 27.1, p < .001, but not
+to sex, F(1, 60) = 0.04, p = .84, or an interaction between affiliation
+and sex, F(2, 60) = .1.21, p = 0.3.
+
+```{r}
+polsum<-politics[politics$testtime=="pre",]%>%group_by(party,sex)%>%
+summarize(means=mean(optimismscore),sems=sd(optimismscore)/sqrt(length(optimismscore)))
+col1=col2hex("deeppink")
+col2=col2hex("deepskyblue2")
+fig<-ggplot(polsum, aes(x=party, y=means, fill=sex))+
+geom_bar(stat="identity",position=position_dodge())+
+scale_fill_manual(values=c(col1,col2),name="Sex",breaks=c("female","male"),
+labels=c("Female", "Male"))+
+theme(legend.key=element_rect(color="black"))+
+geom_errorbar(aes(ymax=means+sems, ymin=means-sems),
+width=.2,position=position_dodge(.9))+
+ggtitle("Optimism Score by Sex and Political Affiliation")+
+labs(x="Political Party Affiliation",y="Optimism Score\n")+
+scale_x_discrete(breaks=c("democrat","independent","republican"),
+labels=c("Democrat","Independent","Republican"))+
+theme(plot.title=element_text(size=15,face="bold",vjust=.5))+
+theme(axis.title.x=element_text(size=12,face="bold",vjust=-.25))+
+theme(axis.title.y=element_text(size=12,face="bold",vjust=1))+
+theme(axis.text.x=element_text(size=10,face="bold",color="black"))+
+theme(axis.text.y=element_text(size=10,face="bold",color="black"))+
+coord_cartesian(ylim=c(min(polsum$means)-2*max(polsum$sems),
+max(polsum$means)+2*max(polsum$sems)))+
+theme(panel.border=element_blank(),axis.line=element_line())+
+theme(panel.grid.major.x=element_blank())+
+theme(panel.grid.major.y=element_line(color="darkgrey"))+
+theme(panel.grid.minor.y=element_blank())+
+theme(legend.position=c(.8,.76))+
+theme(legend.background=element_blank())+
+theme(legend.background=element_rect(color="black"))+
+theme(legend.title=element_blank())+
+theme(legend.title=element_text(size=12))+
+theme(legend.title.align=.5)+
+theme(legend.text=element_text(size=10,face="bold"))
+fig
+```
+
 <!-- Create a line graph for the same data. With
 error bars of course!-->
 
+```{r}
+fig<-ggplot(polsum, aes(x=party, y=means, group=sex, color=sex))+
+  geom_line(size=1)+
+  geom_point(size=2)+
+  scale_color_manual(values=c(col1,col2),name="Sex",breaks=c("female","male"), 
+                    labels=c("Female", "Male"))+
+  geom_line(stat="identity",)+
+  scale_fill_manual(values=c(col1,col2),name="Sex",breaks=c("female","male"),
+                    labels=c("Female", "Male"))+
+  theme(legend.key=element_rect(color="black"))+
+  geom_errorbar(aes(ymax=means+sems,ymin=means-sems,width=.2))+
+  ggtitle("Optimism Score by Sex and Political Affiliation")+
+  labs(x="Political Party Affiliation",y="Optimism Score\n")+
+  scale_x_discrete(breaks=c("democrat","independent","republican"),
+                   labels=c("Democrat","Independent","Republican"))+
+  theme(plot.title=element_text(size=15,face="bold",vjust=.5))+
+  theme(axis.title.x=element_text(size=12,face="bold",vjust=-.25))+
+  theme(axis.title.y=element_text(size=12,face="bold",vjust=1))+
+  theme(axis.text.x=element_text(size=10,face="bold",color="black"))+
+  theme(axis.text.y=element_text(size=10,face="bold",color="black"))+
+  coord_cartesian(ylim=c(min(polsum$means)-2*max(polsum$sems),
+                         max(polsum$means)+2*max(polsum$sems)))+
+  theme(panel.border=element_blank(),axis.line=element_line())+
+  theme(panel.grid.major.x=element_blank())+
+  theme(panel.grid.major.y=element_line(color="darkgrey"))+
+  theme(panel.grid.minor.y=element_blank())+
+  theme(legend.position=c(.7,.76))+
+  theme(legend.background=element_blank())+
+  theme(legend.background=element_rect(color="black"))+
+  theme(legend.title=element_blank())+
+  theme(legend.title=element_text(size=12))+
+  theme(legend.title.align=.5)+
+  theme(legend.text=element_text(size=10,face="bold"))
+fig
+```
 
 <!-- Run a test to see if optimism scores pre- and post
 watching videos depends on sex.-->
 
+```{r}
+summary(aov(optimismscore~testtime*sex+Error(subject/testtime),data=politics))
+```
+
+From these results, we can conclude that optimism was related to the sex of the subjects, F(1, 64) = 0.119, p < .001.
 
 <!-- Run a Multiple Regression Analysis to see
 whether you can predict someones posttest optimism
@@ -78,3 +200,8 @@ lines that best fit the data for both sexes regardless of
 whether the lines are warranted based on the statistical
 analyses-->
 
+```{r}
+summary(lm(optimismscore[testtime=="post"]~optimismscore
+[testtime=="pre"]+party[testtime=="pre"],data=politics))
+```
+The linear model predicting posttest optimism scores from pretest optimism scores and party does explain any variance, R^2 = .9, F(3, 62) = 180.3, p < .001. 
